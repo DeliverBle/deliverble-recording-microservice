@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package v1.user;
 
-option go_package = "https://github.com/DeliverBle/deliverble-recording-microservice";
+option go_package = "github.com/DeliverBle/deliverble-recording-microservice";
 
 service User {
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
