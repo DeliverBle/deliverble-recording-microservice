@@ -81,3 +81,25 @@ func (s *PostServer) ListPostsByUserId(ctx context.Context, req *postpb.ListPost
 		PostMessages: postMessagesByUserId,
 	}, nil
 }
+
+func (s *PostServer) ListAllPosts(ctx context.Context, req *postpb.ListAllPostsRequest) (*postpb.ListAllPostsResponse, error) {
+	var postMessages []*postpb.PostMessage
+	for _, up := range data.MockUserPosts {
+		resp, err := s.UserClient.GetUser(ctx, &userpb.GetUserRequest{
+			UserId: up.UserId,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, post := range up.Posts {
+			post.Author = resp.UserMessage.Name
+		}
+
+		postMessages = append(postMessages, up.Posts...)
+	}
+
+	return &postpb.ListAllPostsResponse{
+		PostMessages: postMessages,
+	}, nil
+}
