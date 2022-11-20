@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package v1.user;
+
+option go_package = "https://github.com/DeliverBle/deliverble-recording-microservice";
+
+service User {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+}
+
+message UserMessage {
+  string user_id = 1;
+  string name = 2;
+  string phone_number = 3;
+  int32 age = 4;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  UserMessage user_message = 1;
+}
+
+message ListUsersRequest{}
+
+message ListUsersResponse {
+  repeated UserMessage user_messages = 1;
+}
