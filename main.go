@@ -1,17 +1,23 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"google.golang.org/grpc"
+	"log"
+	"net"
 )
 
-func hello(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "hello\n")
-}
-
 func main() {
+	portNumber := "8080"
 
-	http.HandleFunc("/hello", hello)
+	lis, err := net.Listen("tcp", ":"+portNumber)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
 
-	http.ListenAndServe(":8090", nil)
+	grpcServer := grpc.NewServer()
+
+	log.Printf("start gRPC server on %s port", portNumber)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %s", err)
+	}
 }
