@@ -20,19 +20,6 @@ func mockItemUserServiceServer(m ...grpcmock.ServerOption) grpcmock.ServerMocker
 	return grpcmock.MockServerWithBufConn(opts...)
 }
 
-// type UserClient interface {
-//	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
-//	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
-//}
-//
-//type userClient struct {
-//	cc grpc.ClientConnInterface
-//}
-//
-//func NewUserClient(cc grpc.ClientConnInterface) UserClient {
-//	return &userClient{cc}
-//}
-
 // https://jadekler.github.io/2020/10/08/stubbing-grpc.html
 type fakeUserClient struct {
 	GetUserFunc   func(ctx context.Context, in *userpb.GetUserRequest, opts ...grpc.CallOption) (*userpb.GetUserResponse, error)
