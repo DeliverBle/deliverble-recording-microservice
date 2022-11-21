@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net/http"
-	"time"
 )
 
 type UserServer struct {
@@ -116,6 +115,7 @@ func (s *PostServer) ListAllPosts(ctx context.Context, req *postpb.ListAllPostsR
 }
 
 func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
+	log.Println("UploadRecording ::::::::::::::::::: ")
 	return &recordingpb.UploadRecordingResponse{}, nil
 }
 
@@ -144,15 +144,19 @@ func UploadRecordingHandler(c echo.Context) error {
 		return err
 	} // file read
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	conn, err := grpc.Dial("localhost:8020", grpc.WithInsecure())
-	log.Println("grpc dial ::::::: 8020 ::::::::::: ", conn, err)
+	if err != nil {
+		log.Println(err)
+		return c.JSON(http.StatusInternalServerError, nil)
+	}
+
 	client := recordingpb.NewRecordingTaskClient(conn)
 	r, err := client.UploadRecording(ctx, &recordingpb.UploadRecordingRequest{Recording: buffer})
 
 	if err != nil {
+		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 	return c.JSON(http.StatusCreated, r.Url)
