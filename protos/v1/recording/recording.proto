@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package prod.recording;
+
+option go_package = "github.com/DeliverBle/deliverble-recording-microservice";
+
+service recording_task {
+  rpc UploadRecording (UploadRecordingRequest) returns (UploadRecordingResponse) {}
+}
+
+// UploadRecordingRequest wrapped with byte data
+message UploadRecordingRequest {
+  bytes recording = 1;
+}
+
+message UploadRecordingResponse {
+  bool result = 1;
+  string url = 2;
+}
