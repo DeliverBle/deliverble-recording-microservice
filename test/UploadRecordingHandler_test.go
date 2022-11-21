@@ -38,7 +38,7 @@ func TestUploadRecordingHandler(t *testing.T) {
 	// when
 	res := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/upload", buf)
-	req.Header.Set(echo.HeaderContentType, echo.MIMEMultipartForm)
+	req.Header.Set(echo.HeaderContentType, writer.FormDataContentType())
 
 	// create new c echo.Context for testing
 	con := echo.New().NewContext(req, res)
