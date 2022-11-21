@@ -4,7 +4,14 @@ import (
 	"context"
 	"deliverble-recording-msa/data"
 	postpb "deliverble-recording-msa/protos/v1/post"
+	recordingpb "deliverble-recording-msa/protos/v1/recording"
 	userpb "deliverble-recording-msa/protos/v1/user"
+	"fmt"
+	_ "github.com/labstack/echo/v4"
+	"io"
+	"log"
+	"net/http"
+	"os"
 )
 
 type UserServer struct {
@@ -14,6 +21,10 @@ type UserServer struct {
 type PostServer struct {
 	postpb.PostServer
 	UserClient userpb.UserClient
+}
+
+type S3Server struct {
+	recordingpb.RecordingTaskServer
 }
 
 /*
@@ -102,4 +113,63 @@ func (s *PostServer) ListAllPosts(ctx context.Context, req *postpb.ListAllPostsR
 	return &postpb.ListAllPostsResponse{
 		PostMessages: postMessages,
 	}, nil
+}
+
+func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
+	return &recordingpb.UploadRecordingResponse{}, nil
+}
+
+func uploadsHandler(w http.ResponseWriter, r *http.Request) {
+	uploadRecording, header, err := r.FormFile("upload_recording")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println(w, err)
+		return
+	}
+
+	// process with the file
+	dirname := "./uploads"
+	err = os.MkdirAll(dirname, 0777)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(w, err)
+		return
+	}
+
+	filepath := fmt.Sprintf("%s/%s", dirname, header.Filename)
+	file, err := os.Create(filepath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(w, err)
+		return
+	}
+
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+	}(file)
+
+	_, err = io.Copy(file, uploadRecording)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, err = fmt.Fprint(w, filepath)
+	if err != nil {
+		log.Println(w, err)
+		return
+	}
+
+	// return file path
+	_, err = w.Write([]byte(filepath))
+	if err != nil {
+		log.Println(w, err)
+		return
+	}
 }
