@@ -6,12 +6,11 @@ import (
 	postpb "deliverble-recording-msa/protos/v1/post"
 	recordingpb "deliverble-recording-msa/protos/v1/recording"
 	userpb "deliverble-recording-msa/protos/v1/user"
-	"fmt"
+	"github.com/labstack/echo"
 	_ "github.com/labstack/echo/v4"
-	"io"
-	"log"
+	"google.golang.org/grpc"
 	"net/http"
-	"os"
+	"time"
 )
 
 type UserServer struct {
@@ -119,57 +118,34 @@ func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadR
 	return &recordingpb.UploadRecordingResponse{}, nil
 }
 
-func uploadsHandler(w http.ResponseWriter, r *http.Request) {
-	uploadRecording, header, err := r.FormFile("upload_recording")
+func UploadRecordingHandler(c echo.Context) error {
+	file, err := c.FormFile("file") // file : "file" parsing
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Println(w, err)
-		return
+		return err
 	}
 
-	// process with the file
-	dirname := "./uploads"
-	err = os.MkdirAll(dirname, 0777)
+	src, err := file.Open() // file api open
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(w, err)
-		return
-	}
-
-	filepath := fmt.Sprintf("%s/%s", dirname, header.Filename)
-	file, err := os.Create(filepath)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(w, err)
-		return
-	}
-
-	defer func(file *os.File) {
-		err := file.Close()
+		err := c.JSON(http.StatusInternalServerError, err)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Println(err)
-			return
+			return err
 		}
-	}(file)
-
-	_, err = io.Copy(file, uploadRecording)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
-	w.WriteHeader(http.StatusOK)
-	_, err = fmt.Fprint(w, filepath)
-	if err != nil {
-		log.Println(w, err)
-		return
-	}
+	defer src.Close()
+	buffer := make([]byte, file.Size) // file size buf define
+	src.Read(buffer)                  // file read
 
-	// return file path
-	_, err = w.Write([]byte(filepath))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := grpc.Dial("localhost:8020", grpc.WithInsecure())
+	client := recordingpb.NewRecordingTaskClient(conn)
+	r, err := client.UploadRecording(ctx, &recordingpb.UploadRecordingRequest{Recording: buffer})
+
 	if err != nil {
-		log.Println(w, err)
-		return
+		return c.JSON(http.StatusInternalServerError, nil)
 	}
+	return c.JSON(http.StatusCreated, r.Url)
 }
