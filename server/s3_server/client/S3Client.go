@@ -30,8 +30,9 @@ func (s *S3Info) InitS3DefaultConfig() (*s3.Client, error) {
 /*
 UploadRecording : uploading process to deliverble s3 bucket when served by the main restful server
 */
-func (s *S3Info) UploadRecording(file io.Reader, filename, prefix string) (*manager.UploadOutput, error) {
+func (s *S3Info) UploadRecording(file io.Reader, filename string) (*manager.UploadOutput, error) {
 	uploader := manager.NewUploader(s.S3Client)
+
 	result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(s.BucketName),
 		Key:    aws.String(filename),
