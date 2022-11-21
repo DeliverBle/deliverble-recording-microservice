@@ -17,14 +17,27 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
-	recordingpb.RegisterRecordingTaskServer(grpcServer, &preprocess.S3Server{})
+	exit := make(chan bool)
 
-	e := echo.New()
-	e.POST("/upload", preprocess.UploadRecordingHandler)
-	e.Logger.Fatal(e.Start(":8000"))
+	go func() {
+		log.Println("start gRPC recording server on " + portNumber + " port")
+		grpcServer := grpc.NewServer()
+		recordingpb.RegisterRecordingTaskServer(grpcServer, &preprocess.S3Server{})
+		if err := grpcServer.Serve(lis); err != nil {
+			exit <- true
+			log.Fatalf("failed to serve: %s", err)
+		}
+	}()
 
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %s", err)
-	}
+	go func() {
+		e := echo.New()
+		e.POST("/upload", preprocess.UploadRecordingHandler)
+		err := e.Start(":8000")
+		if err != nil {
+			exit <- true
+			log.Fatalf("failed to serve: %s", err)
+		}
+	}()
+
+	<-exit
 }
