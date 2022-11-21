@@ -6,11 +6,17 @@ import (
 	postpb "deliverble-recording-msa/protos/v1/post"
 	recordingpb "deliverble-recording-msa/protos/v1/recording"
 	userpb "deliverble-recording-msa/protos/v1/user"
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/labstack/echo"
 	_ "github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
 	"log"
+	"math/rand"
 	"net/http"
+	"os"
 )
 
 type UserServer struct {
@@ -115,7 +121,38 @@ func (s *PostServer) ListAllPosts(ctx context.Context, req *postpb.ListAllPostsR
 }
 
 func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
-	log.Println("UploadRecording ::::::::::::::::::: ")
+	log.Println("UploadRecording ::::::::::::::::::: ", req.Recording)
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Profile: "default",
+		Config: aws.Config{
+			Region: aws.String("us-west-2"),
+		},
+	})
+
+	if err != nil {
+		fmt.Printf("Failed to initialize new session: %v", err)
+		return nil, err
+	}
+
+	bucketName := "deliverble-recording-bucket"
+	uploader := s3manager.NewUploader(sess)
+	filename := string(rune(rand.Intn(100000)))
+
+	rec, err := os.Create("/tmp/" + filename + ".mp3")
+	if err != nil {
+		log.Println("Error creating file: ", err)
+		return nil, err
+	}
+	defer rec.Close()
+
+	fmt.Fprintf(rec, string(req.Recording))
+
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(rec.Name()),
+		Body:   rec,
+	})
+
 	return &recordingpb.UploadRecordingResponse{}, nil
 }
 
