@@ -1,11 +1,30 @@
 package main
 
 import (
+	"deliverble-recording-msa/preprocess"
+	recordingpb "deliverble-recording-msa/protos/v1/recording"
 	"github.com/labstack/echo"
+	"google.golang.org/grpc"
+	"log"
+	"net"
 )
 
 func main() {
-	// create a new echo instance
+	portNumber := "8020"
+
+	lis, err := net.Listen("tcp", ":"+portNumber)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	recordingpb.RegisterRecordingTaskServer(grpcServer, &preprocess.S3Server{})
+
 	e := echo.New()
+	e.POST("/upload", preprocess.UploadRecordingHandler)
 	e.Logger.Fatal(e.Start(":8000"))
+
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %s", err)
+	}
 }
