@@ -141,8 +141,9 @@ func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadR
 	}
 
 	filename := fmt.Sprintf("%d", rand.Intn(1000000000))
+	filepath := "/tmp/" + filename + ".mp3"
 
-	rec, err := os.Create("/tmp/" + filename + ".mp3")
+	rec, err := os.Create(filepath)
 	if err != nil {
 		log.Println("Error creating file: ", err)
 		return nil, err
@@ -152,7 +153,7 @@ func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadR
 	fmt.Fprintf(rec, string(req.Recording))
 
 	var response *recordingpb.UploadRecordingResponse
-	recording, err := s.UploadRecording(ctx, req)
+	recording, err := info.UploadRecording(filename, filepath)
 	if err != nil {
 		response = &recordingpb.UploadRecordingResponse{
 			Result: false,
@@ -161,8 +162,8 @@ func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadR
 		return response, err
 	} else {
 		response = &recordingpb.UploadRecordingResponse{
-			Result: recording.Result,
-			Url:    recording.Url,
+			Result: true,
+			Url:    recording.UploadID,
 		}
 		return response, nil
 	}

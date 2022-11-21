@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,8 +29,15 @@ func (s *S3Info) InitS3DefaultConfig() (*s3.Client, error) {
 /*
 UploadRecording : uploading process to deliverble s3 bucket when served by the main restful server
 */
-func (s *S3Info) UploadRecording(file io.Reader, filename string) (*manager.UploadOutput, error) {
+func (s *S3Info) UploadRecording(filename string, filepath string) (*manager.UploadOutput, error) {
 	uploader := manager.NewUploader(s.S3Client)
+
+	// open file by filepath
+	file, err := os.Open(filepath)
+	if err != nil {
+		log.Fatal("UploadRecording File Open Error ::::::: ", err)
+		return nil, err
+	}
 
 	result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(s.BucketName),
