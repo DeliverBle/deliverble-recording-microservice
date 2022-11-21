@@ -3,6 +3,7 @@ module deliverble-recording-msa
 go 1.19
 
 require (
+	github.com/aws/aws-sdk-go v1.44.142
 	github.com/aws/aws-sdk-go-v2 v1.17.1
 	github.com/aws/aws-sdk-go-v2/config v1.18.2
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.41
