@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo"
 	_ "github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
+	"log"
 	"net/http"
 	"time"
 )
@@ -121,6 +122,7 @@ func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadR
 func UploadRecordingHandler(c echo.Context) error {
 	file, err := c.FormFile("file") // file : "file" parsing
 	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
 		return err
 	}
 
@@ -128,6 +130,7 @@ func UploadRecordingHandler(c echo.Context) error {
 	if err != nil {
 		err := c.JSON(http.StatusInternalServerError, err)
 		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
 			return err
 		}
 		return err
@@ -135,12 +138,17 @@ func UploadRecordingHandler(c echo.Context) error {
 
 	defer src.Close()
 	buffer := make([]byte, file.Size) // file size buf define
-	src.Read(buffer)                  // file read
+	_, err = src.Read(buffer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	} // file read
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	conn, err := grpc.Dial("localhost:8020", grpc.WithInsecure())
+	log.Println("grpc dial ::::::: 8020 ::::::::::: ", conn, err)
 	client := recordingpb.NewRecordingTaskClient(conn)
 	r, err := client.UploadRecording(ctx, &recordingpb.UploadRecordingRequest{Recording: buffer})
 
