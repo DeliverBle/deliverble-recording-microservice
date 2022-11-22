@@ -3,9 +3,12 @@ package test
 import (
 	"bytes"
 	"deliverble-recording-msa/preprocess"
+	"deliverble-recording-msa/server/s3_server/client"
+	"encoding/json"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +18,10 @@ import (
 )
 
 func TestUploadRecordingHandler(t *testing.T) {
+	/*
+		Run `go build deliverble-recrording-msa/server/s3_server` before running this test.
+	*/
+
 	// given : preparing form file (mp3)
 	assertions := assert.New(t)
 
@@ -47,5 +54,13 @@ func TestUploadRecordingHandler(t *testing.T) {
 	err = preprocess.UploadRecordingHandler(con)
 	assertions.NoError(err)
 
+	body, err := ioutil.ReadAll(res.Body)
+	assertions.NoError(err)
+
+	var response client.UploadRecordingHandlerResponse
+	err = json.Unmarshal(body, &response)
+
 	assert.Equal(t, http.StatusCreated, res.Code)
+	assert.Contains(t, response.Url, "https://deliverable-recording.s3.ap-northeast-2.amazonaws.com")
+	assert.Contains(t, response.Url, ".mp3")
 }
