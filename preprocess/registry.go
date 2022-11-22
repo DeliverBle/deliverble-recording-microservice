@@ -2,7 +2,6 @@ package preprocess
 
 import (
 	"context"
-	constants "deliverble-recording-msa"
 	"deliverble-recording-msa/data"
 	postpb "deliverble-recording-msa/protos/v1/post"
 	recordingpb "deliverble-recording-msa/protos/v1/recording"
@@ -18,6 +17,7 @@ import (
 	_ "github.com/aws/aws-sdk-go/aws"
 	_ "github.com/aws/aws-sdk-go/aws/session"
 	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo"
 	_ "github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
@@ -128,12 +128,16 @@ func (s *PostServer) ListAllPosts(ctx context.Context, req *postpb.ListAllPostsR
 	}, nil
 }
 
-func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
+func (s *S3Server) UploadRecording(_ context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	info := client.S3Info{
-		AwsS3Region:  constants.AP_NORTHEAST_2,
-		BucketName:   constants.DELIVERBLE_BUCKET_NAME,
-		AwsAccessKey: constants.DELIVERBLE_ACCESS_KEY,
-		AwsSecretKey: constants.DELIVERBLE_PRIVATE_KEY,
+		AwsS3Region:  os.Getenv("AP_NORTHEAST_2"),
+		BucketName:   os.Getenv("DELIVERBLE_BUCKET_NAME"),
+		AwsAccessKey: os.Getenv("DELIVERBLE_ACCESS_KEY"),
+		AwsSecretKey: os.Getenv("DELIVERBLE_SECRET_KEY"),
 	}
 
 	client, err := info.InitS3DefaultConfig()
