@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo"
 	_ "github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -150,14 +151,11 @@ func (s *S3Server) UploadRecording(_ context.Context, req *recordingpb.UploadRec
 	filename := fmt.Sprintf("%v.mp3", time.Now().Unix())
 	filepath := "/tmp/" + filename + ".mp3"
 
-	rec, err := os.Create(filepath)
+	err = ioutil.WriteFile(filepath, req.Recording, 0644)
 	if err != nil {
-		log.Println("Error creating file: ", err)
+		log.Println("Error writing to file: ", err)
 		return nil, err
 	}
-	defer rec.Close()
-
-	fmt.Fprintf(rec, string(req.Recording))
 
 	var response *recordingpb.UploadRecordingResponse
 	recording, err := info.UploadRecording(filename, filepath)
