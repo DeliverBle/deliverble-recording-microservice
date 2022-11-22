@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"context"
+	constants "deliverble-recording-msa"
 	"deliverble-recording-msa/data"
 	postpb "deliverble-recording-msa/protos/v1/post"
 	recordingpb "deliverble-recording-msa/protos/v1/recording"
@@ -21,9 +22,9 @@ import (
 	_ "github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
+	"time"
 )
 
 type UserServer struct {
@@ -129,18 +130,20 @@ func (s *PostServer) ListAllPosts(ctx context.Context, req *postpb.ListAllPostsR
 
 func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
 	info := client.S3Info{
-		AwsS3Region:    "ap-northeast-2",
-		BucketName:     "deliverable-recording-bucket",
-		AwsProfileName: "default",
+		AwsS3Region:  constants.AP_NORTHEAST_2,
+		BucketName:   constants.DELIVERBLE_BUCKET_NAME,
+		AwsAccessKey: constants.DELIVERBLE_ACCESS_KEY,
+		AwsSecretKey: constants.DELIVERBLE_PRIVATE_KEY,
 	}
 
-	_, err := info.InitS3DefaultConfig()
+	client, err := info.InitS3DefaultConfig()
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
+	log.Println("S3 client init success ::::::::::::: ", client)
 
-	filename := fmt.Sprintf("%d", rand.Intn(1000000000))
+	filename := fmt.Sprintf("%v.mp3", time.Now().Unix())
 	filepath := "/tmp/" + filename + ".mp3"
 
 	rec, err := os.Create(filepath)
