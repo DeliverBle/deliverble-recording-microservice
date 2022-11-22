@@ -161,12 +161,14 @@ func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadR
 		response = &recordingpb.UploadRecordingResponse{
 			Result: false,
 			Url:    "",
+			Key:    "",
 		}
 		return response, err
 	} else {
 		response = &recordingpb.UploadRecordingResponse{
 			Result: true,
-			Url:    recording.UploadID,
+			Url:    recording.Location,
+			Key:    *recording.Key,
 		}
 		return response, nil
 	}
@@ -213,5 +215,11 @@ func UploadRecordingHandler(c echo.Context) error {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
-	return c.JSON(http.StatusCreated, r.Url)
+
+	successResponse := &client.UploadRecordingHandlerResponse{
+		Code: http.StatusCreated,
+		Url:  r.Url,
+		Key:  r.Key,
+	}
+	return c.JSON(http.StatusCreated, successResponse)
 }
