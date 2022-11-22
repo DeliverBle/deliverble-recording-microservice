@@ -58,6 +58,20 @@ sudo docker pull 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-re
 sudo docker run -itd -p 8020:8020 -p 8000:8000 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-recording-microservice:latest
 ```
 
+## Push to GitHub Packages
+```
+export CR_PAT=${GITHUB_TOKENS}
+```
+```
+echo $CR_PAT | docker login ghcr.io -u DeliverBle --password-stdin
+```
+```
+docker tag deliverble-recording-microservice:latest ghcr.io/deliverble/deliverble-recording-microservice:latest
+```
+```
+docker push ghcr.io/deliverble/deliverble-recording-microservice:latest
+```
+
 ## Heads up!
 * If you are looking to resolve ECR push EOF error, see [here](https://stackoverflow.com/questions/70452836/docker-push-to-aws-ecr-hangs-immediately-and-times-out)
 * If Dockerfile cannot find your Go app in working directory, see [here](https://www.reddit.com/r/golang/comments/hr3895/cant_load_package_package_no_go_files_in_app_when/)
