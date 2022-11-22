@@ -29,3 +29,16 @@ protoc -I=. \
 ```
 docker buildx build --platform linux/amd64 -f ./Dockerfile -t deliverble-recording-microservice .
 ```
+```
+aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com
+```
+```
+docker tag deliverble-recording-microservice:latest 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-recording-microservice:latest
+```
+```
+docker push 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-recording-microservice:latest
+```
+
+## Heads up!
+* If you are looking to resolve ECR push EOF error, see [here](https://stackoverflow.com/questions/70452836/docker-push-to-aws-ecr-hangs-immediately-and-times-out)
+* If Dockerfile cannot find your Go app in working directory, see [here](https://www.reddit.com/r/golang/comments/hr3895/cant_load_package_package_no_go_files_in_app_when/)
