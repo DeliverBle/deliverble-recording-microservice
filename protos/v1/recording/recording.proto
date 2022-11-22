@@ -16,4 +16,5 @@ message UploadRecordingRequest {
 message UploadRecordingResponse {
   bool result = 1;
   string url = 2;
+  string key = 3;
 }
