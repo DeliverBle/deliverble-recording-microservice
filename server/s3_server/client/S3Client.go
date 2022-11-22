@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -13,13 +14,16 @@ import (
 	"strings"
 )
 
-/*
-InitS3DefaultConfig : needed to be injected access id and secret key in aws credentials file as default
-*/
+// InitS3DefaultConfig /*
+// https://velog.io/@tae2089/Go%EC%97%90%EC%84%9C-S3-%EC%82%AC%EC%9A%A9%ED%95%B4%EB%B3%B4%EA%B8%B0
 func (s *S3Info) InitS3DefaultConfig() (*s3.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	creds := credentials.NewStaticCredentialsProvider(s.AwsAccessKey, s.AwsSecretKey, "")
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithCredentialsProvider(creds),
+		config.WithRegion(s.AwsS3Region),
+	)
 	if err != nil {
-		log.Fatal("InitS3DefaultConfig Error ::::::: ", err)
+		log.Printf("error: %v", err)
+		panic(err)
 		return nil, err
 	}
 	s.S3Client = s3.NewFromConfig(cfg)
