@@ -38,6 +38,25 @@ docker tag deliverble-recording-microservice:latest 175045290745.dkr.ecr.ap-nort
 ```
 docker push 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-recording-microservice:latest
 ```
+## Production Command (AWS ECR)
+```
+aws configure
+```
+```
+aws ecr get-login-password --region ap-northeast-2
+```
+```
+sudo docker login -u AWS -p ${PASSWORD} 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-recording-microservice
+```
+```
+aws ecr list-images --repository-name "deliverble-recording-microservice" --region ap-northeast-2
+```
+```
+sudo docker pull 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-recording-microservice:latest
+```
+```
+sudo docker run -itd -p 8020:8020 -p 8000:8000 175045290745.dkr.ecr.ap-northeast-2.amazonaws.com/deliverble-recording-microservice:latest
+```
 
 ## Heads up!
 * If you are looking to resolve ECR push EOF error, see [here](https://stackoverflow.com/questions/70452836/docker-push-to-aws-ecr-hangs-immediately-and-times-out)
