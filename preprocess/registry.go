@@ -6,17 +6,25 @@ import (
 	postpb "deliverble-recording-msa/protos/v1/post"
 	recordingpb "deliverble-recording-msa/protos/v1/recording"
 	userpb "deliverble-recording-msa/protos/v1/user"
+	"deliverble-recording-msa/server/s3_server/client"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	_ "github.com/aws/aws-sdk-go-v2/aws"
+	_ "github.com/aws/aws-sdk-go-v2/config"
+	_ "github.com/aws/aws-sdk-go-v2/credentials"
+	_ "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	_ "github.com/aws/aws-sdk-go-v2/service/s3"
+	_ "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	_ "github.com/aws/aws-sdk-go/aws"
+	_ "github.com/aws/aws-sdk-go/aws/session"
+	_ "github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo"
 	_ "github.com/labstack/echo/v4"
 	"google.golang.org/grpc"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
+	"time"
 )
 
 type UserServer struct {
@@ -120,25 +128,29 @@ func (s *PostServer) ListAllPosts(ctx context.Context, req *postpb.ListAllPostsR
 	}, nil
 }
 
-func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
-	log.Println("UploadRecording ::::::::::::::::::: ", req.Recording)
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Profile: "default",
-		Config: aws.Config{
-			Region: aws.String("us-west-2"),
-		},
-	})
-
+func (s *S3Server) UploadRecording(_ context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
+	err := godotenv.Load(".env")
 	if err != nil {
-		fmt.Printf("Failed to initialize new session: %v", err)
-		return nil, err
+		log.Fatal("Error loading .env file")
+	}
+	info := client.S3Info{
+		AwsS3Region:  os.Getenv("AP_NORTHEAST_2"),
+		BucketName:   os.Getenv("DELIVERBLE_BUCKET_NAME"),
+		AwsAccessKey: os.Getenv("DELIVERBLE_ACCESS_KEY"),
+		AwsSecretKey: os.Getenv("DELIVERBLE_SECRET_KEY"),
 	}
 
-	bucketName := "deliverble-recording-bucket"
-	uploader := s3manager.NewUploader(sess)
-	filename := string(rune(rand.Intn(100000)))
+	client, err := info.InitS3DefaultConfig()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	log.Println("S3 client init success ::::::::::::: ", client)
 
-	rec, err := os.Create("/tmp/" + filename + ".mp3")
+	filename := fmt.Sprintf("%v.mp3", time.Now().Unix())
+	filepath := "/tmp/" + filename + ".mp3"
+
+	rec, err := os.Create(filepath)
 	if err != nil {
 		log.Println("Error creating file: ", err)
 		return nil, err
@@ -147,13 +159,23 @@ func (s *S3Server) UploadRecording(ctx context.Context, req *recordingpb.UploadR
 
 	fmt.Fprintf(rec, string(req.Recording))
 
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucketName),
-		Key:    aws.String(rec.Name()),
-		Body:   rec,
-	})
-
-	return &recordingpb.UploadRecordingResponse{}, nil
+	var response *recordingpb.UploadRecordingResponse
+	recording, err := info.UploadRecording(filename, filepath)
+	if err != nil {
+		response = &recordingpb.UploadRecordingResponse{
+			Result: false,
+			Url:    "",
+			Key:    "",
+		}
+		return response, err
+	} else {
+		response = &recordingpb.UploadRecordingResponse{
+			Result: true,
+			Url:    recording.Location,
+			Key:    *recording.Key,
+		}
+		return response, nil
+	}
 }
 
 func UploadRecordingHandler(c echo.Context) error {
@@ -165,6 +187,7 @@ func UploadRecordingHandler(c echo.Context) error {
 
 	src, err := file.Open() // file api open
 	if err != nil {
+		log.Println("Error opening file: ", err)
 		err := c.JSON(http.StatusInternalServerError, err)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
@@ -189,12 +212,18 @@ func UploadRecordingHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
-	client := recordingpb.NewRecordingTaskClient(conn)
-	r, err := client.UploadRecording(ctx, &recordingpb.UploadRecordingRequest{Recording: buffer})
+	taskClient := recordingpb.NewRecordingTaskClient(conn)
+	r, err := taskClient.UploadRecording(ctx, &recordingpb.UploadRecordingRequest{Recording: buffer})
 
 	if err != nil {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
-	return c.JSON(http.StatusCreated, r.Url)
+
+	successResponse := &client.UploadRecordingHandlerResponse{
+		Code: http.StatusCreated,
+		Url:  r.Url,
+		Key:  r.Key,
+	}
+	return c.JSON(http.StatusCreated, successResponse)
 }
