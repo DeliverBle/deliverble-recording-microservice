@@ -10,7 +10,7 @@ Recording S3 upload dedicated Microservice to deliverble restful server
 * only [deliverble restful server](https://github.com/DeliverBle/deliverble-backend-nestjs) is allowed to communicate with the MSA module
 ### does not
 * provide any other functionality other than uploading mp3 file in s3 bucket
-* delete feature or change naming strategy should be done in the restful server (nothing to do with bucket itself)
+* delete feature, change naming feature or listing all recordings by User Identity should be done in the restful server (nothing to do with bucket itself)
 
 ## How to start
 ```
