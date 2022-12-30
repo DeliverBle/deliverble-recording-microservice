@@ -31,6 +31,7 @@ func main() {
 
 	go func() {
 		e := echo.New()
+		e.POST("/upload/v2", preprocess.UploadRecordingHandlerV2)
 		e.POST("/upload", preprocess.UploadRecordingHandler)
 		err := e.Start(":8000")
 		if err != nil {

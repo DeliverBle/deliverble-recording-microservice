@@ -55,6 +55,47 @@ func (s *S3Info) UploadRecording(filename string, filepath string) (*manager.Upl
 	return result, nil
 }
 
+//
+///*
+//UploadRecordingV2 : uploading process to deliverble s3 bucket when served by the main restful server (with using ffmpeg	to convert the file)
+//*/
+//func (s *S3Info) UploadRecordingV2(filename string, filepath string) (*manager.UploadOutput, error) {
+//	uploader := manager.NewUploader(s.S3Client)
+//
+//	// 1. change `uploaded` mp3 file to webm file
+//	errChange := ChangeFileNameMp3ToWebm(filepath)
+//	if errChange != nil {
+//		log.Println("UploadRecordingV2 Error ::::::: ", errChange)
+//	}
+//
+//	// filename to remove `.mp3` but not to add	`.webm`
+//	filename = strings.Replace(filename, ".mp3", "", -1)
+//
+//	// 2. convert converted `.webm` file to `.mp3` file
+//	errConvert := ConvertWebmBlobToMp3File(filename)
+//	if errConvert != nil {
+//		fmt.Println(errConvert)
+//	}
+//
+//	// open file by filepath
+//	file, err := os.Open(filepath)
+//	if err != nil {
+//		log.Fatal("UploadRecording File Open Error ::::::: ", err)
+//		return nil, err
+//	}
+//
+//	result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
+//		Bucket: aws.String(s.BucketName),
+//		Key:    aws.String(filename),
+//		Body:   file,
+//	})
+//	if err != nil {
+//		log.Fatal("UploadRecording Error ::::::: ", err)
+//		return nil, err
+//	}
+//	return result, nil
+//}
+
 /*
 DownloadRecording : downloading process to deliverble s3 bucket when served by the main restful server
 */
