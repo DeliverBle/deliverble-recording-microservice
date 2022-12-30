@@ -8,10 +8,10 @@ import (
 	"regexp"
 )
 
-func ChangeFileNameMp3ToWebm(inputFileName string) error {
+func ChangeFileNameMp3ToWebm(inputFileName string) (*string, error) {
 	// Check if the input file exists
 	if _, err := os.Stat(inputFileName); os.IsNotExist(err) {
-		return fmt.Errorf("file %s does not exist", inputFileName)
+		return nil, fmt.Errorf("file %s does not exist", inputFileName)
 	}
 
 	// Replace ".mp3" with ".webm" using a regular expression
@@ -21,14 +21,14 @@ func ChangeFileNameMp3ToWebm(inputFileName string) error {
 	// Rename the input file to the output file
 	err := os.Rename(inputFileName, outputFileName)
 	if err != nil {
-		return fmt.Errorf("failed to rename file %s to %s: %v", inputFileName, outputFileName, err)
+		return nil, fmt.Errorf("failed to rename file %s to %s: %v", inputFileName, outputFileName, err)
 	}
 
-	return nil
+	return &outputFileName, nil
 }
 
-func ConvertWebmBlobToMp3File(input string, output string) error {
-	cmd := exec.Command("ffmpeg", "-i", input+".webm", output+".mp3")
+func ConvertWebmBlobToMp3File(input string) error {
+	cmd := exec.Command("ffmpeg", "-i", input+".webm", input+".mp3")
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
