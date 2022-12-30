@@ -7,6 +7,7 @@ import (
 	recordingpb "deliverble-recording-msa/protos/v1/recording"
 	userpb "deliverble-recording-msa/protos/v1/user"
 	"deliverble-recording-msa/server/s3_server/client"
+	ffw "deliverble-recording-msa/server/s3_server/client"
 	"fmt"
 	_ "github.com/aws/aws-sdk-go-v2/aws"
 	_ "github.com/aws/aws-sdk-go-v2/config"
@@ -25,6 +26,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -174,6 +176,134 @@ func (s *S3Server) UploadRecording(_ context.Context, req *recordingpb.UploadRec
 		}
 		return response, nil
 	}
+}
+
+func (s *S3Server) UploadRecordingV2(_ context.Context, req *recordingpb.UploadRecordingRequest) (*recordingpb.UploadRecordingResponse, error) {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	info := client.S3Info{
+		AwsS3Region:  os.Getenv("AP_NORTHEAST_2"),
+		BucketName:   os.Getenv("DELIVERBLE_BUCKET_NAME"),
+		AwsAccessKey: os.Getenv("DELIVERBLE_ACCESS_KEY"),
+		AwsSecretKey: os.Getenv("DELIVERBLE_SECRET_KEY"),
+	}
+
+	client, err := info.InitS3DefaultConfig()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	log.Println("S3 client init success ::::::::::::: ", client)
+
+	// 0. work with given uploaded file
+	filename := fmt.Sprintf("%v.mp3", time.Now().Unix())
+	filepath := "/tmp/" + filename
+
+	err = ioutil.WriteFile(filepath, req.Recording, 0644)
+	if err != nil {
+		log.Println("Error writing to file: ", err)
+		return nil, err
+	}
+
+	// 1. change `uploaded` mp3 file to webm file
+	fileNameWebm, errChange := ffw.ChangeFileNameMp3ToWebm(filepath)
+	if errChange != nil {
+		log.Println("UploadRecordingV2 Error ::::::: ", errChange)
+		response := &recordingpb.UploadRecordingResponse{
+			Result: false,
+			Url:    "",
+			Key:    "",
+		}
+		return response, err
+	}
+	filename = *fileNameWebm
+
+	// 2. convert converted `.webm` file to `.mp3` file
+	// filename to remove `.mp3` but not to add	`.webm`
+	errConvert := ffw.ConvertWebmBlobToMp3File(strings.Replace(filename, ".mp3", "", -1))
+	if errConvert != nil {
+		log.Println("UploadRecordingV2 Error ::::::: ", errConvert)
+		response := &recordingpb.UploadRecordingResponse{
+			Result: false,
+			Url:    "",
+			Key:    "",
+		}
+		return response, err
+	}
+
+	var response *recordingpb.UploadRecordingResponse
+	recording, err := info.UploadRecordingV2(filename, filepath)
+	if err != nil {
+		response = &recordingpb.UploadRecordingResponse{
+			Result: false,
+			Url:    "",
+			Key:    "",
+		}
+		return response, err
+	} else {
+		response = &recordingpb.UploadRecordingResponse{
+			Result: true,
+			Url:    recording.Location,
+			Key:    *recording.Key,
+		}
+		return response, nil
+	}
+}
+
+func UploadRecordingHandlerV2(c echo.Context) error {
+	file, err := c.FormFile("file") // file : "file" parsing
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return err
+	}
+
+	src, err := file.Open() // file api open
+	if err != nil {
+		log.Println("Error opening file: ", err)
+		err := c.JSON(http.StatusInternalServerError, err)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return err
+		}
+		return err
+	}
+
+	defer src.Close()
+	buffer := make([]byte, file.Size) // file size buf define
+	_, err = src.Read(buffer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return err
+	} // file read
+
+	ctx := context.Background()
+
+	conn, err := grpc.Dial("localhost:8020", grpc.WithInsecure())
+	if err != nil {
+		log.Println(err)
+		return c.JSON(http.StatusInternalServerError, nil)
+	}
+
+	taskClient := recordingpb.NewRecordingTaskClient(conn)
+	r, err := taskClient.UploadRecordingV2(ctx, &recordingpb.UploadRecordingRequest{Recording: buffer})
+
+	if err != nil {
+		log.Println(err)
+		return c.JSON(http.StatusInternalServerError, nil)
+	}
+
+	if r.Result == false {
+		return c.JSON(http.StatusInternalServerError, r)
+	}
+
+	successResponse := &client.UploadRecordingHandlerResponse{
+		Code: http.StatusCreated,
+		Url:  r.Url,
+		Key:  r.Key,
+	}
+	return c.JSON(http.StatusCreated, successResponse)
 }
 
 func UploadRecordingHandler(c echo.Context) error {

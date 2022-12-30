@@ -6,6 +6,7 @@ option go_package = "github.com/DeliverBle/deliverble-recording-microservice";
 
 service recording_task {
   rpc UploadRecording (UploadRecordingRequest) returns (UploadRecordingResponse) {}
+  rpc UploadRecordingV2 (UploadRecordingRequest) returns (UploadRecordingResponse) {}
 }
 
 // UploadRecordingRequest wrapped with byte data

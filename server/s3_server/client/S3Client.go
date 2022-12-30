@@ -31,7 +31,38 @@ func (s *S3Info) InitS3DefaultConfig() (*s3.Client, error) {
 }
 
 /*
-UploadRecording : uploading process to deliverble s3 bucket when served by the main restful server
+UploadRecordingV2 : uploading process to deliverble s3 bucket when served by the main restful server
+*/
+func (s *S3Info) UploadRecordingV2(filename string, filepath string) (*manager.UploadOutput, error) {
+	uploader := manager.NewUploader(s.S3Client)
+
+	// change filename to remove `/tmp` path location at the forehead of the name
+	filename = strings.TrimPrefix(filename, "/tmp/")
+
+	// Add the ".mp3" extension to the file name
+	filename = strings.Join([]string{filename, ".mp3"}, "")
+
+	// open file by filepath
+	file, err := os.Open(filepath)
+	if err != nil {
+		log.Println("UploadRecording File Open Error ::::::: ", err)
+		return nil, err
+	}
+
+	result, err := uploader.Upload(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(s.BucketName),
+		Key:    aws.String(filename),
+		Body:   file,
+	})
+	if err != nil {
+		log.Fatal("UploadRecording Error ::::::: ", err)
+		return nil, err
+	}
+	return result, nil
+}
+
+/*
+UploadRecordingV2 : uploading process to deliverble s3 bucket when served by the main restful server (with using ffmpeg	to convert the file)
 */
 func (s *S3Info) UploadRecording(filename string, filepath string) (*manager.UploadOutput, error) {
 	uploader := manager.NewUploader(s.S3Client)
@@ -39,7 +70,7 @@ func (s *S3Info) UploadRecording(filename string, filepath string) (*manager.Upl
 	// open file by filepath
 	file, err := os.Open(filepath)
 	if err != nil {
-		log.Fatal("UploadRecording File Open Error ::::::: ", err)
+		log.Println("UploadRecording File Open Error ::::::: ", err)
 		return nil, err
 	}
 
