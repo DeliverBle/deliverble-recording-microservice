@@ -36,7 +36,6 @@ func copyFile(src, dst string) error {
 func TestFFMpegConvert(t *testing.T) {
 	// given: file name
 	Mp3Extension := ".mp3"
-	WebMExtension := ".webm"
 	SampleSourceName := "test" // source mp3
 	SrcName := "test2"         // fake mp3 (copied from source mp3 for testing)
 	DstName := "output2"       // real mp3
@@ -71,6 +70,6 @@ func TestFFMpegConvert(t *testing.T) {
 	// then
 	assertions.NoError(errChange)
 	assertions.NoError(errConvert)
-	assertions.Equal(SrcName+WebMExtension, *outputFileNameWithWebM)
+	assertions.Equal(SrcName, *outputFileNameWithWebM)
 	assertions.FileExists(SrcName + Mp3Extension)
 }
