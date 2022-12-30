@@ -199,7 +199,7 @@ func (s *S3Server) UploadRecordingV2(_ context.Context, req *recordingpb.UploadR
 
 	// 0. work with given uploaded file
 	filename := fmt.Sprintf("%v.mp3", time.Now().Unix())
-	filepath := "/tmp/" + filename + ".mp3"
+	filepath := "/tmp/" + filename
 
 	err = ioutil.WriteFile(filepath, req.Recording, 0644)
 	if err != nil {
@@ -211,6 +211,12 @@ func (s *S3Server) UploadRecordingV2(_ context.Context, req *recordingpb.UploadR
 	fileNameWebm, errChange := ffw.ChangeFileNameMp3ToWebm(filepath)
 	if errChange != nil {
 		log.Println("UploadRecordingV2 Error ::::::: ", errChange)
+		response := &recordingpb.UploadRecordingResponse{
+			Result: false,
+			Url:    "",
+			Key:    "",
+		}
+		return response, err
 	}
 	filename = *fileNameWebm
 
@@ -219,10 +225,16 @@ func (s *S3Server) UploadRecordingV2(_ context.Context, req *recordingpb.UploadR
 	errConvert := ffw.ConvertWebmBlobToMp3File(strings.Replace(filename, ".mp3", "", -1))
 	if errConvert != nil {
 		log.Println("UploadRecordingV2 Error ::::::: ", errConvert)
+		response := &recordingpb.UploadRecordingResponse{
+			Result: false,
+			Url:    "",
+			Key:    "",
+		}
+		return response, err
 	}
 
 	var response *recordingpb.UploadRecordingResponse
-	recording, err := info.UploadRecording(filename, filepath)
+	recording, err := info.UploadRecordingV2(filename, filepath)
 	if err != nil {
 		response = &recordingpb.UploadRecordingResponse{
 			Result: false,
@@ -280,6 +292,10 @@ func UploadRecordingHandlerV2(c echo.Context) error {
 	if err != nil {
 		log.Println(err)
 		return c.JSON(http.StatusInternalServerError, nil)
+	}
+
+	if r.Result == false {
+		return c.JSON(http.StatusInternalServerError, r)
 	}
 
 	successResponse := &client.UploadRecordingHandlerResponse{

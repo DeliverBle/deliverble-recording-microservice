@@ -14,14 +14,17 @@ func ChangeFileNameMp3ToWebm(inputFileName string) (*string, error) {
 		return nil, fmt.Errorf("file %s does not exist", inputFileName)
 	}
 
-	// Replace ".mp3" with ".webm" using a regular expression
-	re := regexp.MustCompile(`\.mp3$`)
-	outputFileName := re.ReplaceAllString(inputFileName, ".webm")
+	// Use a regular expression to remove all instances of ".mp3" from the file name
+	r := regexp.MustCompile("\\.mp3")
+	outputFileName := r.ReplaceAllString(inputFileName, "")
+
+	// Append the new extension to the file name
+	outputFileNameWithWebm := outputFileName + ".webm"
 
 	// Rename the input file to the output file
-	err := os.Rename(inputFileName, outputFileName)
+	err := os.Rename(inputFileName, outputFileNameWithWebm)
 	if err != nil {
-		return nil, fmt.Errorf("failed to rename file %s to %s: %v", inputFileName, outputFileName, err)
+		return nil, fmt.Errorf("failed to rename file %s to %s: %v", inputFileName, outputFileNameWithWebm, err)
 	}
 
 	return &outputFileName, nil
